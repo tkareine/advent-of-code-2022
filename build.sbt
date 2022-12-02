@@ -5,11 +5,7 @@ lazy val root = project
     version := "0.0.1-SNAPSHOT",
     scalaVersion := "3.2.1",
     scalacOptions ++= Seq("--deprecation"),
-    autoScalaLibrary := false,
-    libraryDependencies ++= Seq(
-      "org.scala-lang" %% "scala3-library" % scalaVersion.value,
-      "org.scalatest" %% "scalatest" % "3.2.14" % Test
-    ),
+    autoScalaLibrary := true,
     run / fork := true,
     run / connectInput := true
   )
