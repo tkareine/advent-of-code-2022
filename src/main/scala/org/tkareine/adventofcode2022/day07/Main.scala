@@ -21,13 +21,13 @@ enum FileNode {
 
   case File(size: Int)
 
-  def nodeSize: Int =
+  def usageSize: Int =
     this match {
-      case FileNode.File(size) =>
+      case File(size) =>
         size
 
-      case FileNode.Dir(_, entries) =>
-        entries.values.map(_.nodeSize).sum
+      case Dir(_, entries) =>
+        entries.values.map(_.usageSize).sum
     }
 
   def toPrettyString(depth: Int = 0): String = {
@@ -63,11 +63,11 @@ enum FileNode {
 }
 
 object FileNode {
-  def mkRoot(): FileNode.Dir =
+  def mkRoot(): Dir =
     Dir(parent = None)
 
   @tailrec
-  def rootOf(dir: FileNode.Dir): FileNode.Dir =
+  def rootOf(dir: FileNode.Dir): Dir =
     dir.parent match {
       case Some(d) =>
         rootOf(d)
@@ -76,11 +76,11 @@ object FileNode {
         dir
     }
 
-  def flatten(dir: FileNode.Dir): List[FileNode.Dir] =
+  def flatten(dir: Dir): List[Dir] =
     dir.entries.values.toList.flatMap {
-      case d: FileNode.Dir =>
+      case d: Dir =>
         d :: flatten(d)
-      case _: FileNode.File =>
+      case _: File =>
         List.empty
     }
 }
@@ -171,11 +171,11 @@ val InputFile = Path.of(sys.props("user.home"), "Scratches/advent-of-code-2022/i
     parseFileTree(file.getLines().drop(1).map(_.trim).buffered)
   }.get
 
-  val allDirSizes = FileNode.flatten(rootDir).map(_.nodeSize)
+  val allDirSizes = FileNode.flatten(rootDir).map(_.usageSize)
 
   val sumDirsMaxSize = allDirSizes.filter(_ < 100000).sum
   val diskSize = 70000000
-  val diskSpaceFree = diskSize - rootDir.nodeSize
+  val diskSpaceFree = diskSize - rootDir.usageSize
   val targetDiskSpaceFree = 30000000
   val deleteDirSize = allDirSizes.filter(diskSpaceFree + _ > targetDiskSpaceFree).min
 
