@@ -19,50 +19,49 @@ object Instruction {
     }
 }
 
-case class Program(instructions: List[Instruction], registerX: Int = 1, headInstructionCyclesConsumed: Int = 0) {
+case class Program(
+    instructions: List[Instruction],
+    registerX: Int = 1,
+    nextInstructionScheduledAtCycleNum: Int = -1
+) {
   import Instruction.*
-
-  require(headInstructionCyclesConsumed == 0 || (headInstructionCyclesConsumed > 0 && instructions.nonEmpty))
 
   def run(numCycles: Int): (Program, Int) = {
     var x = registerX
 
-    def effect(instruction: Instruction): Unit =
+    def apply(instruction: Instruction): Unit =
       instruction match {
         case Addx(n) => x += n
         case Noop    =>
       }
 
     var is = instructions
-    var currentCycle = 0
+    var cycleNum = 0
 
-    var nextInstructionEffectAtCycle =
-      if (headInstructionCyclesConsumed > 0) {
-        is.head.cyclesConsumed - headInstructionCyclesConsumed
-      } else -1
+    var nextInstructionAtCycleNum = nextInstructionScheduledAtCycleNum
 
-    while (is.nonEmpty && currentCycle < numCycles) {
-      if (nextInstructionEffectAtCycle == -1) {
-        nextInstructionEffectAtCycle = currentCycle + is.head.cyclesConsumed - 1
+    while (is.nonEmpty && cycleNum < numCycles) {
+      if (nextInstructionAtCycleNum == -1) {
+        nextInstructionAtCycleNum = cycleNum + is.head.cyclesConsumed - 1
       }
 
-      if (currentCycle == nextInstructionEffectAtCycle) {
-        effect(is.head)
+      if (cycleNum == nextInstructionAtCycleNum) {
+        apply(is.head)
         is = is.tail
-        nextInstructionEffectAtCycle = -1
+        nextInstructionAtCycleNum = -1
       }
 
-      currentCycle += 1
+      cycleNum += 1
     }
 
-    val cyclesLeft = numCycles - currentCycle - 1
+    val cyclesLeft = numCycles - cycleNum
 
     val nextProgram = Program(
       instructions = is,
       registerX = x,
-      headInstructionCyclesConsumed = if (nextInstructionEffectAtCycle != -1) {
-        nextInstructionEffectAtCycle - currentCycle
-      } else 0
+      nextInstructionScheduledAtCycleNum = if (nextInstructionAtCycleNum != -1) {
+        nextInstructionAtCycleNum - numCycles
+      } else -1
     )
 
     nextProgram -> cyclesLeft
@@ -98,6 +97,37 @@ def measureSignals(program: Program, atCycleNums: Seq[Int]): Seq[Int] = {
   go(program, 0, atCycleNums.toList, Vector.empty)
 }
 
+def drawScreen(program: Program): String = {
+  val crtWidth = 40
+
+  def drawPixel(registerX: Int, cycleNum: Int): Char = {
+    val x = (cycleNum - 1) % crtWidth
+    if math.abs(x - registerX) <= 1 then '#' else '.'
+  }
+
+  def isRowEnd(cycleNum: Int): Boolean =
+    (cycleNum - 1) % crtWidth == crtWidth - 1
+
+  val sb = StringBuilder()
+
+  var prog = program
+  var cycleNum = 1
+
+  while (prog.instructions.nonEmpty) {
+    sb.addOne(drawPixel(prog.registerX, cycleNum))
+
+    if (isRowEnd(cycleNum)) {
+      sb.addOne('\n')
+    }
+
+    val (nextPrg, _) = prog.run(1)
+    prog = nextPrg
+    cycleNum += 1
+  }
+
+  sb.toString()
+}
+
 val InputFile = Path.of(sys.props("user.home"), "Scratches/advent-of-code-2022/input/day10.txt")
 
 @main def main(): Unit = {
@@ -105,11 +135,12 @@ val InputFile = Path.of(sys.props("user.home"), "Scratches/advent-of-code-2022/i
     file.getLines().map(line => Instruction.parse(line.trim())).toList
   }.get
 
-  val cyclesToMeasureSignal = (20 to 220 by 40).toList
-
-  val signalStrengths = measureSignals(Program(instructions), cyclesToMeasureSignal)
+  val signalStrengths = measureSignals(Program(instructions), (20 to 220 by 40).toList)
+  val screen = drawScreen(Program(instructions))
 
   println(
-    s"""Sum of signal strengths: ${signalStrengths.sum}""".stripMargin
+    s"""Sum of signal strengths: ${signalStrengths.sum}
+       |
+       |$screen""".stripMargin
   )
 }
