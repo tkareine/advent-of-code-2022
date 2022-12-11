@@ -7,6 +7,7 @@ lazy val root = project
     scalacOptions ++= Seq("--deprecation"),
     autoScalaLibrary := true,
     libraryDependencies ++= Seq(
+      "org.scala-lang.modules" %% "scala-parser-combinators" % "2.1.1",
       "org.scalatest" %% "scalatest-funsuite" % "3.2.14" % Test
     ),
     run / fork := true,
