@@ -102,7 +102,7 @@ def drawScreen(program: Program): String = {
 
   def drawPixel(registerX: Int, cycleNum: Int): Char = {
     val x = (cycleNum - 1) % crtWidth
-    if math.abs(x - registerX) <= 1 then '#' else '.'
+    if (registerX - 1 to registerX + 1).contains(x) then '#' else '.'
   }
 
   def isRowEnd(cycleNum: Int): Boolean =
