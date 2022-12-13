@@ -100,18 +100,18 @@ object MonkeyParser extends RegexParsers {
       }
 }
 
-case class RoundResult(monkeys: Vector[Monkey], inspections: Vector[Int]) {
-  def addInspections(insp: Vector[Int]): RoundResult =
+case class RoundResult(monkeys: Vector[Monkey], inspections: Vector[Long]) {
+  def addInspections(insp: Vector[Long]): RoundResult =
     copy(inspections = inspections.zip(insp).map { case (i1, i2) => i1 + i2 })
 }
 
 object RoundResult {
   def apply(monkeys: Vector[Monkey]): RoundResult =
-    RoundResult(monkeys = monkeys, inspections = Vector.fill(monkeys.size)(0))
+    RoundResult(monkeys = monkeys, inspections = Vector.fill(monkeys.size)(0L))
 }
 
-def playRound(monkeys: Vector[Monkey]): RoundResult = {
-  @tailrec def go(index: Int, monkeys: Vector[Monkey], inspections: Vector[Int]): RoundResult =
+def playRound(monkeys: Vector[Monkey])(reliefWorry: Long => Long): RoundResult = {
+  @tailrec def go(index: Int, monkeys: Vector[Monkey], inspections: Vector[Long]): RoundResult =
     if (index == monkeys.size) {
       RoundResult(monkeys, inspections)
     } else if (monkeys(index).items.isEmpty) {
@@ -119,7 +119,7 @@ def playRound(monkeys: Vector[Monkey]): RoundResult = {
     } else {
       val fromMonkey = monkeys(index)
       val oldWorry = fromMonkey.items.head
-      val newWorry = fromMonkey.operation(oldWorry) / 3
+      val newWorry = reliefWorry(fromMonkey.operation(oldWorry))
       val toIndex = fromMonkey.throwTest(newWorry)
       val toMonkey = monkeys(toIndex)
       go(
@@ -131,13 +131,16 @@ def playRound(monkeys: Vector[Monkey]): RoundResult = {
       )
     }
 
-  go(0, monkeys, Vector.fill(monkeys.size)(0))
+  go(0, monkeys, Vector.fill(monkeys.size)(0L))
 }
 
-def playRounds(times: Int, monkeys: Vector[Monkey]) =
+def playRounds(times: Int, monkeys: Vector[Monkey])(reliefWorry: Long => Long) =
   (0 until times).foldLeft(RoundResult(monkeys)) { (rr, _) =>
-    playRound(rr.monkeys).addInspections(rr.inspections)
+    playRound(rr.monkeys)(reliefWorry).addInspections(rr.inspections)
   }
+
+def monkeyBusiness(inspections: Vector[Long]): Long =
+  inspections.sorted(Ordering[Long].reverse).take(2).product
 
 val InputFile = Path.of(sys.props("user.home"), "Scratches/advent-of-code-2022/input/day11.txt")
 
@@ -146,7 +149,15 @@ val InputFile = Path.of(sys.props("user.home"), "Scratches/advent-of-code-2022/i
     MonkeyParser.parse(file.bufferedReader()).get
   }.get.map { case (_, m) => m }.toVector
 
-  val monkeyBusiness = playRounds(20, monkeys).inspections.sorted(Ordering[Int].reverse).take(2).product
+  val divisorProduct = monkeys.map(_.throwTest.divisibleBy).product
 
-  println(s"Monkey business: $monkeyBusiness")
+  val monkeyBusiness20R = monkeyBusiness(playRounds(20, monkeys)(_ / 3).inspections)
+
+  val monkeyBusiness10_000R = monkeyBusiness(playRounds(10_000, monkeys)(_ % divisorProduct).inspections)
+
+  println(
+    s"""Monkey business:
+       |      20 rounds: $monkeyBusiness20R
+       |  10 000 rounds: $monkeyBusiness10_000R""".stripMargin
+  )
 }
