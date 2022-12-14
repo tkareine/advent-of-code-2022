@@ -3,7 +3,7 @@ package org.tkareine.adventofcode2022.day11
 import java.io.Reader
 import java.nio.file.Path
 import scala.annotation.tailrec
-import scala.collection.{BufferedIterator, mutable}
+import scala.collection.BufferedIterator
 import scala.io.Source
 import scala.util.parsing.combinator.RegexParsers
 import scala.util.{Try, Using, Failure as Err, Success as Ok}
